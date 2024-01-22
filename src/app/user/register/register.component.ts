@@ -55,7 +55,7 @@ export class RegisterComponent {
       console.error(e);
       this.alertMsg = 'An unexpected error occured. Please try again later';
       this.alertColor = 'red';
-      this.inSubmission = true;
+      this.inSubmission = false;
 
       return;
     }
