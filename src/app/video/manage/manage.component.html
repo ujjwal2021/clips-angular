@@ -68,6 +68,7 @@
         </a>
         <a
           href="#"
+          (click)="deleteClip($event, clip)"
           class="flex-1 p-2 rounded-br-2xl transition hover:text-indigo-400"
         >
           <span class="material-icons text-base">delete</span>
@@ -77,4 +78,4 @@
   </div>
 </div>
 
-<app-edit [activeClip]="activeClip"> </app-edit>
+<app-edit [activeClip]="activeClip" (update)="update($event)"> </app-edit>
