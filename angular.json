@@ -6,14 +6,8 @@
     "clips": {
       "projectType": "application",
       "schematics": {
-        "@schematics/angular:component": {
-          "standalone": false
-        },
-        "@schematics/angular:directive": {
-          "standalone": false
-        },
-        "@schematics/angular:pipe": {
-          "standalone": false
+        "@schematics/angular:application": {
+          "strict": true
         }
       },
       "root": "",
@@ -21,18 +15,21 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:application",
+          "builder": "@angular-devkit/build-angular:browser",
           "options": {
             "outputPath": "dist/clips",
             "index": "src/index.html",
-            "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
+            "main": "src/main.ts",
+            "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "input": "node_modules/@ffmpeg/core/dist",
+                "output": "node_modules/@ffmpeg/core/dist",
+                "glob": "*"
+              }
             ],
             "styles": [
               "src/styles.css"
@@ -44,21 +41,30 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumWarning": "5mb",
+                  "maximumError": "5mb"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "50kb",
+                  "maximumError": "50kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
                 }
               ],
               "outputHashing": "all"
             },
             "development": {
+              "buildOptimizer": false,
               "optimization": false,
+              "vendorChunk": true,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "namedChunks": true
             }
           },
           "defaultConfiguration": "production"
@@ -67,28 +73,33 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "clips:build:production"
+              "browserTarget": "clips:build:production"
             },
             "development": {
-              "buildTarget": "clips:build:development"
+              "browserTarget": "clips:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "headers": {
+              "Cross-Origin-Opener-Policy": "same-origin",
+              "Cross-Origin-Embedder-Policy": "require-corp"
+            }
+          }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "clips:build"
+            "browserTarget": "clips:build"
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
+            "main": "src/test.ts",
+            "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.js",
             "assets": [
               "src/favicon.ico",
               "src/assets"
@@ -98,11 +109,42 @@
             ],
             "scripts": []
           }
+        },
+        "cypress-run": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "devServerTarget": "clips:serve"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "clips:serve:production"
+            }
+          }
+        },
+        "cypress-open": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "watch": true,
+            "headless": false
+          }
+        },
+        "e2e": {
+          "builder": "@cypress/schematic:cypress",
+          "options": {
+            "devServerTarget": "clips:serve",
+            "watch": true,
+            "headless": false
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "clips:serve:production"
+            }
+          }
         }
       }
     }
   },
   "cli": {
-    "analytics": "c5d0e333-364c-4c34-bf8b-cfe39acfdf63"
+    "analytics": "7e9035dd-0375-4317-9b74-9ea6348aa40e"
   }
 }

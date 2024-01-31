@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import {
   AngularFirestore,
   AngularFirestoreCollection,
 } from '@angular/fire/compat/firestore';
-import IUser from '../models/user.model';
 import { Observable, of } from 'rxjs';
-import { map, delay, filter, switchMap } from 'rxjs/operators';
+import IUser from '../models/user.model';
+import { delay, map, filter, mergeMap } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, ActivationEnd } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -16,8 +17,8 @@ export class AuthService {
   private usersCollection: AngularFirestoreCollection<IUser>;
   public isAuthenticated$: Observable<boolean>;
   public isAuthenticatedWithDelay$: Observable<boolean>;
+  private redirect = false;
 
-  public redirect = false;
   constructor(
     private auth: AngularFireAuth,
     private db: AngularFirestore,
@@ -30,8 +31,14 @@ export class AuthService {
     this.router.events
       .pipe(
         filter((e) => e instanceof NavigationEnd),
-        map((e) => this.route.firstChild),
-        switchMap((route) => route?.data ?? of({ authOnly: false }))
+        map(() => this.route),
+        map((route) => {
+          while (route.firstChild) {
+            route = route.firstChild;
+          }
+          return route;
+        }),
+        mergeMap((route) => route.data)
       )
       .subscribe((data) => {
         this.redirect = data.authOnly ?? false;
@@ -39,24 +46,24 @@ export class AuthService {
   }
 
   public async createUser(userData: IUser) {
-    const { email, password, name, age, phoneNumber } = userData;
-
-    if (!password) {
-      throw new Error('Password not provided');
+    if (!userData.password) {
+      throw new Error('Password not provided!');
     }
 
     const userCred = await this.auth.createUserWithEmailAndPassword(
-      email as string,
-      password as string
+      userData.email,
+      userData.password
     );
+
     if (!userCred.user) {
       throw new Error("User can't be found");
     }
-    this.usersCollection.doc(userCred.user?.uid).set({
-      name,
-      email,
-      age,
-      phoneNumber,
+
+    await this.usersCollection.doc(userCred.user.uid).set({
+      name: userData.name,
+      email: userData.email,
+      age: userData.age,
+      phoneNumber: userData.phoneNumber,
     });
 
     await userCred.user.updateProfile({
@@ -64,9 +71,15 @@ export class AuthService {
     });
   }
 
-  public async logout(event?: Event) {
-    if (event) event.preventDefault();
+  public async logout($event?: Event) {
+    if ($event) {
+      $event.preventDefault();
+    }
+
     await this.auth.signOut();
-    if (this.redirect) await this.router.navigateByUrl('/');
+
+    if (this.redirect) {
+      await this.router.navigateByUrl('/');
+    }
   }
 }
